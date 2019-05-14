@@ -1,5 +1,6 @@
 import json
 from bson.objectid import ObjectId
+from bson.errors import InvalidId
 from pymongo import ReturnDocument
 
 
@@ -121,6 +122,8 @@ class MongoQuery(object):
         Otherwise an insert() operation is performed. In this case if manipulate 
         is True an "_id" will be added to to_save and this method returns the 
         "_id" of the saved document.
+        if "_id" passed to method is convertable to oid, it will be converted to oid
+        before sending to mongodb, otherwise it will not converted to oid.
 
         | ${allResults} | Save MongoDB Records | DBName | CollectionName | JSON |
 
@@ -135,8 +138,13 @@ class MongoQuery(object):
         dbName = str(dbName)
         dbCollName = str(dbCollName)
         recordJSON = dict(json.loads(recordJSON))
+
         if '_id' in recordJSON:
-            recordJSON['_id'] = ObjectId(recordJSON['_id'])
+            try:
+                recordJSON['_id'] = ObjectId(recordJSON['_id'])
+            except InvalidId as e:
+                print "Using customized string-style id as mongo id"
+
         try:
             db = self._dbconnection['%s' % (dbName,)]
         except TypeError:
